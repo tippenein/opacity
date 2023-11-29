@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_parse_function_def() {
-        let input = "defpub something(a: int, b: int):\n    return a + b";
+        let input = "defpub something(a: int, b: int):\n    return a - b";
         match parse(input) {
             Ok(ast) => match ast {
                 AST::FunctionDef { name, params, body } => {
@@ -78,7 +78,7 @@ mod tests {
                                     AST::Identifier(ref name) => assert_eq!(name, "a"),
                                     _ => panic!("Expected identifier for left operand"),
                                 }
-                                assert_eq!(op, Token::Plus);
+                                assert_eq!(op, Token::Minus);
                                 match *right {
                                     AST::Identifier(ref name) => assert_eq!(name, "b"),
                                     _ => panic!("Expected identifier for right operand"),
@@ -125,15 +125,27 @@ fn body_expr(input: &str) -> ParseResult {
     alt((binary_expr, binary_expr))(input)
 }
 
+fn operator_parser(input: &str) -> IResult<&str, Token, VerboseError<&str>> {
+    alt((
+        map(tag("+"), |_| Token::Plus),
+        map(tag("-"), |_| Token::Minus),
+    ))(input)
+}
 // Helper function to parse a binary expression
 fn binary_expr(input: &str) -> ParseResult {
     context(
         "binary exp",
         map(
-            tuple((identifier, multispace0, char('+'), multispace0, identifier)),
-            |(left, _, _, _, right)| AST::BinaryExpr {
+            tuple((
+                identifier,
+                multispace0,
+                operator_parser,
+                multispace0,
+                identifier,
+            )),
+            |(left, _, op, _, right)| AST::BinaryExpr {
                 left: Box::new(AST::Identifier(left.to_string())),
-                op: Token::Plus,
+                op: op,
                 right: Box::new(AST::Identifier(right.to_string())),
             },
         ),

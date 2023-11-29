@@ -7,8 +7,9 @@ pub enum Token {
     Colon,
     Comma,
     IntType,
-    Return,
     Plus,
+    Minus,
+    Return,
     EOF,
 }
 
@@ -35,6 +36,10 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             }
             ',' => {
                 tokens.push(Token::Comma);
+                chars.next();
+            }
+            '-' => {
+                tokens.push(Token::Minus);
                 chars.next();
             }
             '+' => {
