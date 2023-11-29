@@ -9,7 +9,7 @@ use nom::{
     IResult,
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AST {
     FunctionDef {
         name: String,
@@ -29,13 +29,40 @@ type ParseResult<'a> = IResult<&'a str, AST, VerboseError<&'a str>>;
 
 #[cfg(test)]
 mod tests {
-    use super::*; // Import everything from the outer module
+    use super::*;
+
+    #[test]
+    fn test_param_list() {
+        let input = "(a: int, b: int)";
+        let g = parameter_list(input).unwrap();
+        assert_eq!(
+            g.1,
+            vec![
+                ("a".to_string(), "int".to_string()),
+                ("b".to_string(), "int".to_string())
+            ]
+        );
+    }
+
+    #[test]
+    fn test_binary_exp() {
+        let input = "a + b";
+        let g = binary_expr(input).unwrap();
+        assert_eq!(
+            g.1,
+            AST::BinaryExpr {
+                left: Box::new(AST::Identifier("a".to_string())),
+                op: Token::Plus,
+                right: Box::new(AST::Identifier("b".to_string())),
+            },
+        );
+    }
 
     #[test]
     fn test_parse_function_def() {
         let input = "defpub something(a: int, b: int):\n    return a + b";
         match parse(input) {
-            Ok((_remaining, ast)) => match ast {
+            Ok(ast) => match ast {
                 AST::FunctionDef { name, params, body } => {
                     assert_eq!(name, "something");
                     assert_eq!(params.len(), 2);
@@ -125,10 +152,11 @@ fn function_def(input: &str) -> ParseResult {
                 identifier,
                 multispace0,
                 parameter_list,
+                tag(":"),
                 multispace1,
                 return_statement,
             )),
-            |(_, _, name, _, params, _, ret_stmt)| AST::FunctionDef {
+            |(_, _, name, _, params, _, _, ret_stmt)| AST::FunctionDef {
                 name: name.to_string(),
                 params: params
                     .into_iter()
