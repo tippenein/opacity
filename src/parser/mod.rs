@@ -1,5 +1,6 @@
 use crate::lexer::Token;
 use nom::{
+    branch::alt,
     bytes::complete::tag,
     character::complete::{alpha1, char, multispace0, multispace1},
     combinator::{map, recognize},
@@ -120,6 +121,10 @@ fn parameter_list(input: &str) -> IResult<&str, Vec<(String, String)>, VerboseEr
     )(input)
 }
 
+fn body_expr(input: &str) -> ParseResult {
+    alt((binary_expr, binary_expr))(input)
+}
+
 // Helper function to parse a binary expression
 fn binary_expr(input: &str) -> ParseResult {
     context(
@@ -137,7 +142,7 @@ fn binary_expr(input: &str) -> ParseResult {
 
 // Helper function to parse a return statement
 fn return_statement(input: &str) -> ParseResult {
-    preceded(tuple((tag("return"), multispace1)), binary_expr)(input)
+    preceded(tuple((tag("return"), multispace1)), body_expr)(input)
         .map(|(next_input, expr)| (next_input, AST::ReturnStatement(Box::new(expr))))
 }
 
